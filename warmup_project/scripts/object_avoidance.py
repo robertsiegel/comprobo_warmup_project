@@ -5,10 +5,10 @@ from sensor_msgs.msg import LaserScan
 import rospy
 import time
 
-class FollowPersonNode(object):
-	""" This node follows a person """
+class AvoidObjectsNode(object):
+	""" This node drives the neato while avoiding objects """
 	def __init__(self):
-		rospy.init_node("follow_person_node")
+		rospy.init_node("avoid_objects_node")
 		# self.vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
 		self.start_angle = -1.57
 		self.end_angle = 1.57
@@ -55,6 +55,8 @@ class FollowPersonNode(object):
 		vel_msg = Twist(Vector3(.25, 0, 0), Vector3(0, 0, turn))
 		vel_pub.publish(vel_msg)
 		time.sleep(.25)
+		# else:
+			# vel_pub.publish(Twist(Vector3(.25, 0, 0), Vector3(0, 0, 0)))
 		# rospy.loginfo(msg.ranges)
 
 	def listener(self):
@@ -63,5 +65,5 @@ class FollowPersonNode(object):
 
 
 if __name__ == '__main__':
-	node = FollowWallNode()
+	node = AvoidObjectsNode()
 	node.listener()
