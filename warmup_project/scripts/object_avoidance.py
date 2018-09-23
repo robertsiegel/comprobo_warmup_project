@@ -5,10 +5,10 @@ from sensor_msgs.msg import LaserScan
 import rospy
 import time
 
-class FollowWallNode(object):
-	""" This node drives the neato in a square """
+class FollowPersonNode(object):
+	""" This node follows a person """
 	def __init__(self):
-		rospy.init_node("follow_wall_node")
+		rospy.init_node("follow_person_node")
 		# self.vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
 		self.start_angle = -1.57
 		self.end_angle = 1.57
@@ -16,59 +16,6 @@ class FollowWallNode(object):
 	def callback(self, msg):
 		vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
 		ranges = msg.ranges
-		# # first and last format tuple(index, val)
-		# first = None
-		# last = None
-		# front_sum = 0
-		# front_count = 0
-		# running_vals = deque([0 for _ in range(10)])
-		# running_avg = 0
-		# delayed_running_vals = deque([0 for _ in range(10)])
-		# delayed_running_avg = 0
-		# lag_amt = 10
-		# debugging = deque()
-		# for i in range(90, -91, -1):
-		# 	index = i if i > 0 else 360 + i
-		# 	debugging.append(ranges[index])
-		# 	''' average shit here'''
-		# 	if abs(ranges[index] - running_avg) < running_avg / 2 or (ranges[index] == 0 and running_avg < .15):
-		# 	# 	pass
-		# 	# else:
-		# 		lagged_index = i + lag_amt if i > -lag_amt else 360 + lag_amt + i
-		# 		if first is None and ranges[index] > 0:
-		# 			first = (index, running_avg)
-		# 		elif first and last is None and ranges[index] == 0:
-		# 			# last = (index - lag_amt, ranges[index - lag_amt])
-		# 			last = (lagged_index, delayed_running_avg)
-		# 		if i in range(-22, 22):
-		# 			front_sum += ranges[index]
-		# 			front_count += 1
-		# 	# running_avg -= running_vals.popleft() / 10
-		# 	# running_vals.append(ranges[index])
-		# 	# running_avg += ranges[index] / 10
-		# 	moved_val = running_vals.popleft()
-		# 	running_avg -= moved_val / 10
-		# 	running_vals.append(ranges[index])
-		# 	running_avg += ranges[index] / 10
-		# 	delayed_running_avg -= delayed_running_vals.popleft() / 10
-		# 	delayed_running_vals.append(moved_val)
-		# 	delayed_running_avg += moved_val / 10
-		# front_avg = front_sum / front_count if front_count else 0
-		# rospy.loginfo('first: {}\nlast: {}\navg: {}'.format(first, last, front_avg))
-		# # rospy.loginfo(debugging)
-		# # rospy.loginfo(len(ranges))
-		# if first and last and front_avg:
-		# 	# turn left case
-		# 	if first[1] > last[1]:
-		# 		turn = .5 / front_avg
-		# 	# turn right case
-		# 	else:
-		# 		turn = -.5 / front_avg
-		# 	time.sleep(.25)
-
-		# 	vel_msg = Twist(Vector3(.25, 0, 0), Vector3(0, 0, turn))
-		# 	vel_pub.publish(vel_msg)
-		# else:
 		# 	vel_pub.publish(Twist(Vector3(.25, 0, 0), Vector3(0, 0, 0)))
 		# # rospy.loginfo(msg.ranges)
 		left = []
@@ -108,8 +55,6 @@ class FollowWallNode(object):
 		vel_msg = Twist(Vector3(.25, 0, 0), Vector3(0, 0, turn))
 		vel_pub.publish(vel_msg)
 		time.sleep(.25)
-		# else:
-			# vel_pub.publish(Twist(Vector3(.25, 0, 0), Vector3(0, 0, 0)))
 		# rospy.loginfo(msg.ranges)
 
 	def listener(self):

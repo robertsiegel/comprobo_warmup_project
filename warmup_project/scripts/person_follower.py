@@ -6,7 +6,7 @@ import rospy
 import time
 
 class FollowWallNode(object):
-	""" This node drives the neato to follow a wall """
+	""" This node drives the neato in a square """
 	def __init__(self):
 		rospy.init_node("follow_wall_node")
 		# self.vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
@@ -87,22 +87,17 @@ class FollowWallNode(object):
 			elif index in range(270, 330) and ranges[index]:
 				right.append(ranges[index])
 
-		left_avg = sum(left) / len(left) if len(left) else 0
-		right_avg = sum(right) / len(right) if len(right) else 0
-		middle_avg = sum(middle) / len(middle) if len(middle) else 0
+		left_avg = sum(left) / len(left)
+		right_avg = sum(right) / len(right)
+		middle_avg = sum(middle) / len(middle)
 		turn = 0
 		if len(left) < 30:
 			if len(right) < 30:
 				pass
-			elif right_avg < .75:
-				pass
 			else:
 				turn = .5 / middle_avg
 		elif len(right) < 30:
-			if left_avg < .75:
-				pass
-			else:
-				turn = -.5 / middle_avg
+			turn = -.5 / middle_avg
 		elif left_avg > right_avg:
 			turn = .5 / middle_avg
 		elif right_avg > left_avg:
