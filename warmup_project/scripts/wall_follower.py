@@ -1,28 +1,28 @@
 #!/usr/bin/env python
 from collections import deque
-from geometry_msgs.msg import Twist, Vector3, Point
+from geometry_msgs.msg import Twist, Vector3, Point, Pose
 from sensor_msgs.msg import LaserScan
 from visualization_msgs.msg import Marker
 import rospy
 import time
 import numpy as np
 import cv2 
+from tf.transformations import euler_from_quaternion, rotation_matrix, quaternion_from_matrix
+import math
 
 class FollowWallNode(object):
 	""" This node drives the neato to follow a wall """
 	def __init__(self):
 		rospy.init_node("follow_wall_node")
 		# self.vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
-		self.start_angle = -1.57
-		self.end_angle = 1.57
-
 
 	def find_wall(self, ranges):
 		vis_pub = rospy.Publisher('/visualization_marker', Marker, queue_size=10)
-		
-		img_dim = 100
 
-		img = np.zeros([img_dim,img_dim,3],dtype=np.uint8)
+		img_size = 100.0
+		pt_multpilier = 10.0
+
+		img = np.zeros([img_size,img_size,3],dtype=np.uint8)
 		img.fill(255) # or img[:] = 255
 
 		for i in range(90, -91, -1):
@@ -30,57 +30,34 @@ class FollowWallNode(object):
 		
 			if ranges[index]:
 				cartPoint = self.polar_to_cart((index, ranges[index]))
-				img[(img_dim/2)+(cartPoint[0]*10), (img_dim/2)+(cartPoint[1]*10)] = [0,0,0]
+				img[(img_size/2)+(cartPoint[0]*pt_multpilier), (img_size/2)+(cartPoint[1]*pt_multpilier)] = [0,0,0]
 		
 		gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY) 
 		edges = cv2.Canny(gray,50,150,apertureSize = 3) 
 
 		lines = cv2.HoughLinesP(edges,1,np.pi/180, 10) 
-		rospy.loginfo("lines: {}".format(lines))
 
-		if lines.any():	
+		neato_xy = self.convert_pose_to_xy_and_theta(Pose())
+
+		longest_length = 0
+		if lines.any():
 			for line in lines:
 				x1,y1,x2,y2 = line[0]
-				cv2.line(img,(x1,y1),(x2,y2),(0,255,0),2)
-		
-		cv2.imwrite('03.png', img)
+				x1 = (x1-(img_size/2))/pt_multpilier-neato_xy[0]
+				y1 = (y1-(img_size/2))/pt_multpilier-neato_xy[1]
+				x2 = (x2-(img_size/2))/pt_multpilier-neato_xy[0]
+				y2 = (y2-(img_size/2))/pt_multpilier-neato_xy[1]
 
-		# for line in lines:
-		# 	pt1 = [line[0], line[1]];
-		# 	pt2 = [line[2], line[3]];
-		# 	outImage.line(pt1, pt2, RED); 
-
-		# if cartPoint:
-		# 	first_wall_point = Point()
-		# 	first_wall_point.x = cartesianWall[0]
-		# 	first_wall_point.y = cartesianWall[1]
-		# 	first_wall_point.z = 0
-		# 	last_wall_point = Point()
-		# 	last_wall_point.x = cartesianWall[2]
-		# 	last_wall_point.y = cartesianWall[3]
-		# 	last_wall_point.z = 0
-
-
-		# 	vis_msg = Marker()
-		# 	vis_msg.type = 4
-		# 	vis_msg.header.frame_id = "odom"
-		# 	vis_msg.points = [first_wall_point, last_wall_point]
-			# vis_msg.pose.position.x = cartesianWall[0]
-			# vis_msg.pose.position.y = cartesianWall[1]
-			# vis_msg.pose.position.z = 0
-			# vis_msg.pose.orientation.x = 0.0
-			# vis_msg.pose.orientation.y = 0.0
-			# vis_msg.pose.orientation.z = 0.0
-			# vis_msg.pose.orientation.w = 1.0
-			# vis_msg.scale.x = 1;
-			# vis_msg.scale.y = 0.1
-			# vis_msg.scale.z = 0.1
-			# vis_msg.color.a = 1.0
-			# vis_msg.color.r = 0.0
-			# vis_msg.color.g = 1.0
-			# vis_msg.color.b = 0.0
-			# vis_pub.publish(vis_msg)
-
+				if abs(math.sqrt((x2-x1)**2+(y2-y1)**2)) > longest_length:
+					first_wall_point = Point()
+					first_wall_point.x = x1
+					first_wall_point.y = y1
+					first_wall_point.z = 0
+					last_wall_point = Point()
+					last_wall_point.x = x2
+					last_wall_point.y = y2
+					last_wall_point.z = 0
+					rospy.loginfo("Line points: {},\n{}".format(first_wall_point, last_wall_point))
 
 
 	def polar_to_cart(self, point):
@@ -101,11 +78,7 @@ class FollowWallNode(object):
 		left = []
 		middle = []
 		right = []
-		# rospy.loginfo(ranges)
-		# for i in range(90, -90 -1):
-		# 	rospy.loginfo(i)
-		# 	index = i if i > 0 else 360 + i
-		# 	rospy.loginfo(index)
+
 		for index in range(0, 361):
 			if index in range(30, 91) and ranges[index]:
 				left.append(ranges[index])
@@ -139,7 +112,7 @@ class FollowWallNode(object):
 			rospy.loginfo("wtf... \nleft_avg: {}\nright_avg{}".format(left_avg, right_avg))
 		
 		vel_msg = Twist(Vector3(.25, 0, 0), Vector3(0, 0, turn))
-		vel_pub.publish(vel_msg)
+		# vel_pub.publish(vel_msg)
 		self.find_wall(ranges)
 		time.sleep(.25)
 		# else:
@@ -150,6 +123,15 @@ class FollowWallNode(object):
 		scan_sub = rospy.Subscriber('/scan', LaserScan, self.callback)
 		rospy.spin()
 
+
+	def convert_pose_to_xy_and_theta(self, pose):
+		""" Convert pose (geometry_msgs.Pose) to a (x,y,yaw) tuple """
+		orientation_tuple = (pose.orientation.x,
+							 pose.orientation.y,
+							 pose.orientation.z,
+							 pose.orientation.w)
+		angles = euler_from_quaternion(orientation_tuple)
+		return (pose.position.x, pose.position.y, angles[2])
 
 if __name__ == '__main__':
 	node = FollowWallNode()
